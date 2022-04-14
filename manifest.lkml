@@ -1,12 +1,12 @@
-project_name: "viz-multiple_value-marketplace"
+project_name: "viz-value-list_fivetran"
 
 constant: VIS_LABEL {
-  value: "Multiple Value2"
+  value: "Multiple Single Values"
   export: override_optional
 }
 
 constant: VIS_ID {
-  value: "multiple_value-marketplace"
+  value: "multiple_single_values_id"
   export:  override_optional
 }
 
