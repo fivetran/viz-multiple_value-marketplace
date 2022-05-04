@@ -5,7 +5,7 @@ const UglifyJSPlugin = require("uglifyjs-webpack-plugin");
 var webpackConfig = {
   mode: 'production',
   entry: {
-    multiple_value: "./src/multiple_value/multiple_value_container.js",
+    multiple_single_values: "./src/multiple_value/multiple_single_values_container.js",
   },
   devServer: {
     contentBase: './dist',

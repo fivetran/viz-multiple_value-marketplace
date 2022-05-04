@@ -1,17 +1,17 @@
-import React, { PureComponent, useState } from "react";
+import React from "react";
 import styled from 'styled-components'
 // @ts-ignore
-import {formatType, lighten} from '../common'
-import SSF from "ssf";
+import {lighten} from '../common'
+import { AppearanceSettings, ComparisonValue } from "./types";
 
-let ComparisonDataPointGroup = styled.div`
+let DataPointComparisonGroup = styled.div`
   flex: 1;
   width: 100%;
 
   margin: 10px 0;
   
   font-size: 0.9em;
-  font-weight: 100;
+  font-weight: 400;
   color: #a5a6a1;
 
   a.drillable-link {
@@ -19,31 +19,28 @@ let ComparisonDataPointGroup = styled.div`
     text-decoration: none;
   }
 `
-const UpArrow = styled.div.attrs({
-  pos: (props: any) => props.pos,
-})`
+
+type ArrowProps = {
+  positive: boolean;
+}
+
+const UpArrow = styled.div<ArrowProps>`
   display: inline-block;
   width: 0; 
   height: 0; 
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-bottom: 10px solid ${props =>
-    props.pos ? 'red' : 'green'
-  };
+  border-bottom: 10px solid ${({ positive }) => positive ? 'red' : 'green' };
   margin-right: 5px;
 `
 
-const DownArrow = styled.div.attrs({
-  pos: (props: any) => props.pos,
-})`
+const DownArrow = styled.div<ArrowProps>`
   display: inline-block;  
   width: 0; 
   height: 0; 
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 10px solid ${props =>
-    props.pos ? 'green' : 'red'
-  };
+  border-top: 10px solid ${({ positive }) => positive ? 'green' : 'red' };
   margin-right: 5px;
 `
 const ComparisonPercentageChange = styled.div`
@@ -54,33 +51,31 @@ const ComparisonPercentageChange = styled.div`
   }
 `
 const ComparisonSimpleValue = styled.div`
-  font-weight: 100;
+  font-weight: 400;
   display: inline-block;
   padding-right: 5px;
   :hover {
     text-decoration: underline;
   }
 `
-const ComparisonProgressBar = styled.div.attrs({
-  background: (props: any) => props.background,
-})`
+
+type ComparisonProgressBarProps = {
+  background: string,
+  pct?: number,
+}
+
+const ComparisonProgressBar = styled.div<ComparisonProgressBarProps>`
   position: relative;
-  background-color: ${props => 
-    props.background ? lighten(props.background, 60) : lighten("#282828", 80)
-  };
+  background-color: ${({background}) => background ? lighten(background, 60) : lighten("#282828", 80)};
   height: 40px;
   text-align: center;
+  border-radius: 4px;
+  overflow: hidden;
 `
-const ComparisonProgressBarFilled = styled.div.attrs({
-  background: (props: any) => props.background,
-  pct: (props: any) => props.pct,
-})`
-  background-color: ${props => 
-    props.background ? lighten(props.background, 45) : lighten("#282828", 60)
-  };
-  width: ${props => 
-    props.pct
-  }%;
+
+const ComparisonProgressBarFilled = styled.div<ComparisonProgressBarProps>`
+  background-color: ${({background}) => background ? lighten(background, 45) : lighten("#282828", 60)};
+  width: ${({pct}) => pct}%;
   height: 40px;
 `
 
@@ -98,66 +93,53 @@ const ComparisonProgressBarLabel = styled.div`
   }
 `;
 
-export const ComparisonDataPoint: React.FC<{
-  config: any,
-  compDataPoint: any,
-  dataPoint: any,
-  percChange: number,
-  progressPerc: number,
-  handleClick: (i: any, j: any)=>{},
-}> = ({ config, compDataPoint, dataPoint, percChange, progressPerc, handleClick }) => {
-
-  function tryFormatting(formatString: string, value: number, defaultString: string) {
-    try {
-      return SSF.format(formatString, value)
-    }
-    catch(err) {
-      return defaultString
-    }
-  }
+export const DataPointComparison: React.FC<{
+  config: AppearanceSettings,
+  dataPoint: ComparisonValue,
+  handleClick: (i: any, j: any) => void,
+}> = ({ config, dataPoint, handleClick }) => {
+  let progressPercent = Math.round((dataPoint.value / dataPoint.comparison.value) * 100)
+  let changePercent = progressPercent - 100;
 
   return (
-    <ComparisonDataPointGroup>
+    <DataPointComparisonGroup>
 
-    {config[`comparison_style_${compDataPoint.name}`] !== 'percentage_change' ? null : (
-      <ComparisonPercentageChange data-value={percChange} onClick={() => { handleClick(compDataPoint, event) }}>
-        {percChange >= 0 ? <UpArrow pos={config[`pos_is_bad_${compDataPoint.name}`]}/> : <DownArrow pos={config[`pos_is_bad_${compDataPoint.name}`]}/>}
-        {percChange}%
-      </ComparisonPercentageChange>
+    {config.value_labels === 'value' && (
+      <>
+        <ComparisonSimpleValue onClick={() => { handleClick(dataPoint.comparison.link, event) }}>
+          {dataPoint.comparison.formattedValue}
+        </ComparisonSimpleValue>
+        {config.comparison_show_label && dataPoint.comparison.label}
+      </>
     )}
 
-    {config[`comparison_style_${compDataPoint.name}`] !== 'value' ? null : 
-    <ComparisonSimpleValue onClick={() => { handleClick(compDataPoint, event) }}>
-      {config[`comp_value_format_${compDataPoint.name}`] === "" ? compDataPoint.formattedValue : tryFormatting(config[`comp_value_format_${compDataPoint.name}`], compDataPoint.value, compDataPoint.formattedValue)}
-    </ComparisonSimpleValue>}
-
-    {config[`comparison_style_${compDataPoint.name}`] !== 'calculate_progress' &&
-    config[`comparison_style_${compDataPoint.name}`] !== 'calculate_progress_perc' ? null : (
-      <ComparisonProgressBar background={config[`style_${dataPoint.name}`]}>
+    {config.value_labels === 'change' && (
+      <>
+        <ComparisonPercentageChange data-value={changePercent} onClick={() => { handleClick(dataPoint.comparison.link, event) }}>
+          {changePercent >= 0 
+            ? <UpArrow positive={config.pos_is_bad}/> 
+            : <DownArrow positive={config.pos_is_bad}/>
+          }
+          {changePercent}%
+        </ComparisonPercentageChange>
+        {config.comparison_show_label && dataPoint.comparison.label}
+      </>
+    )}
+    
+    {(config.value_labels === 'progress' || config.value_labels === 'progress_percentage') && (
+      <ComparisonProgressBar background={'#0000FF'}>
         <ComparisonProgressBarFilled
-          background={config[`style_${dataPoint.name}`]}
-          pct={()=>Math.min(progressPerc || 0, 100)}
+          background={'#0000FF'}
+          pct={Math.min(progressPercent || 0, 100)}
         />
-          {config[`comparison_show_label_${compDataPoint.name}`] === false ? null : (
-            <ComparisonProgressBarLabel><div onClick={() => { handleClick(compDataPoint, event) }}>
-              {config[`comparison_style_${compDataPoint.name}`] === 'calculate_progress' ? null :
-                <>
-                  {`${progressPerc}% of ${config[`comp_value_format_${compDataPoint.name}`] === "" ? compDataPoint.formattedValue : tryFormatting(config[`comp_value_format_${compDataPoint.name}`], compDataPoint.value, compDataPoint.formattedValue)} `}
-                </>
-              }
-              {config[`comparison_label_${compDataPoint.name}`] || compDataPoint.label}
-            </div></ComparisonProgressBarLabel>
-          )}
+        <ComparisonProgressBarLabel>
+          <div onClick={() => { handleClick(dataPoint.comparison.link, event) }}>
+            {config.value_labels === 'progress_percentage' && `${progressPercent}% of ${dataPoint.comparison.formattedValue} `}
+            {config.comparison_show_label && dataPoint.comparison.label}
+          </div>
+        </ComparisonProgressBarLabel>
       </ComparisonProgressBar>
     )}
-
-    {(
-      config[`comparison_show_label_${compDataPoint.name}`] === false ||
-      config[`comparison_style_${compDataPoint.name}`] === 'calculate_progress' ||
-      config[`comparison_style_${compDataPoint.name}`] === 'calculate_progress_perc')
-    ? null 
-    : config[`comparison_label_${compDataPoint.name}`] || compDataPoint.label}
-
-    </ComparisonDataPointGroup>
+    </DataPointComparisonGroup>
   )
 }
